@@ -23,6 +23,7 @@
 
 #include <exception>
 #include <functional>
+#include <initializer_list>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -1982,14 +1983,15 @@ public:
     return *this;
   }
 
-  /// Constructs the value in-place, destroying the current one if there is
-  /// one.
+  /// Rebinds this optional to the given lvalue reference, replacing the
+  /// currently held one if there is any.
   template <class... Args> T &emplace(Args &&... args) noexcept {
-    static_assert(std::is_constructible<T, Args &&...>::value,
-                  "T must be constructible with Args");
-
-    *this = nullopt;
-    this->construct(std::forward<Args>(args)...);
+    static_assert(sizeof...(Args) == 1,
+                  "emplace on optional<T&> requires exactly one lvalue "
+                  "reference to bind to");
+    T *bound = nullptr;
+    (void)std::initializer_list<int>{(bound = std::addressof(args), 0)...};
+    m_value = bound;
     return value();
   }
 

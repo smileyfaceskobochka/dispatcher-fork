@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <QString>
 
@@ -17,14 +18,16 @@ using ByteArray = Botan::secure_vector<uint8_t>;
 
 inline ByteArray hash(const std::string &bytes) {
   std::unique_ptr<Botan::HashFunction> hasher(
-      Botan::HashFunction::create("SHA-256"));
-  return hasher->process(bytes);
+      Botan::HashFunction::create_or_throw("SHA-256"));
+  const std::vector<uint8_t> data(bytes.begin(), bytes.end());
+  return hasher->process(data);
 }
 
 inline std::string encrypt(const std::string &tasks,
                            const QString &passphrase) {
   std::unique_ptr<Botan::Cipher_Mode> enc(
-      Botan::get_cipher_mode("AES-256/CBC/PKCS7", Botan::ENCRYPTION));
+      Botan::Cipher_Mode::create_or_throw("AES-256/CBC/PKCS7",
+                                          Botan::Cipher_Dir::Encryption));
   enc->set_key(hash(passphrase.toStdString()));
 
   Botan::AutoSeeded_RNG rng;
@@ -49,7 +52,8 @@ inline std::string encrypt(const std::string &tasks,
 inline std::string decrypt(const std::string &ciphertext,
                            const QString &passphrase) {
   std::unique_ptr<Botan::Cipher_Mode> enc(
-      Botan::get_cipher_mode("AES-256/CBC/PKCS7", Botan::DECRYPTION));
+      Botan::Cipher_Mode::create_or_throw("AES-256/CBC/PKCS7",
+                                          Botan::Cipher_Dir::Decryption));
   enc->set_key(hash(passphrase.toStdString()));
 
   Botan::secure_vector<uint8_t> plaintext(
